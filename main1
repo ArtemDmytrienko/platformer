@@ -1,0 +1,95 @@
+import pygame
+from pygame import *
+
+# Инициализация
+pygame.init()
+clock = time.Clock()
+fps = 60
+
+# Окно
+window = display.set_mode((700, 500))
+display.set_caption("Анимация персонажа со спрайт-листом")
+
+# Фон
+background = transform.scale(image.load("gifmake_1743770852.gif"), (700, 500))
+
+
+# Базовый класс
+class GameSprite(sprite.Sprite):
+    def __init__(self, x, y, width, height, speed):
+        super().__init__()
+        self.speed = speed
+        self.rect = Rect(x, y, width, height)
+
+    def reset(self, screen, image):
+        screen.blit(image, (self.rect.x, self.rect.y))
+
+
+# Класс игрока с анимацией
+class Player(GameSprite):
+    def __init__(self, sprite_sheet_path, frame_width, frame_height, x, y, speed, num_frames):
+        super().__init__(x, y, frame_width, frame_height, speed)
+        self.frames = self.load_frames_from_sheet(sprite_sheet_path, frame_width, frame_height, num_frames)
+        self.current_frame = 0
+        self.animation_timer = 0
+        self.animation_delay = 500  # миллисекунд между кадрами
+        self.last_direction = "right"
+
+    def load_frames_from_sheet(self, sheet_path, frame_width, frame_height, num_frames):
+        sheet = image.load(sheet_path).convert_alpha()
+        frames = []
+        for i in range(num_frames):
+            frame = Surface((frame_width, frame_height), SRCALPHA)
+            frame.blit(sheet, (0, 0), (i * frame_width, 0, frame_width, frame_height))
+            frames.append(frame)
+        return frames
+
+    def update(self, screen):
+        keys = key.get_pressed()
+        moving = False
+
+        if keys[K_a] and self.rect.x > 0:
+            self.rect.x -= self.speed
+            moving = True
+            self.last_direction = "left"
+        if keys[K_d] and self.rect.x < 700 - self.rect.width:
+            self.rect.x += self.speed
+            moving = True
+            self.last_direction = "right"
+
+        # Анимация
+        self.animation_timer += clock.get_time()
+        if moving:
+            if self.animation_timer >= self.animation_delay:
+                self.current_frame = (self.current_frame + 1) % len(self.frames)
+                self.animation_timer = 0
+        else:
+            self.current_frame = 0
+
+        current_image = self.frames[self.current_frame]
+
+        # Отражаем по направлению
+        if self.last_direction == "left":
+            current_image = transform.flip(current_image, True, False)
+
+        self.reset(screen, current_image)
+
+
+# 🎮 Создаём игрока
+# Параметры: файл, ширина кадра, высота кадра, x, y, скорость, число кадров
+player = Player("ддддд-removebg-preview.png", 70, 100, 5, 400, 5, num_frames=6)
+
+# 🔁 Главный цикл
+run = True
+while run:
+    for e in event.get():
+        if e.type == QUIT:
+            run = False
+
+    window.blit(background, (0, 0))
+    player.update(window)
+
+    display.update()
+    clock.tick(fps)
+
+pygame.quit()
